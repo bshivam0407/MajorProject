@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
     int imageCountFirebase=0;
     ArrayList<Uri> ImageUriList = new ArrayList<>();
     ArrayList<byte[]> ImageArray= new ArrayList<>();
+    ProgressDialog progressDialog;
 
 
     @Override
@@ -53,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
 
         databaseReference =FirebaseDatabase.getInstance().getReference("MAJOR PROJECT");
         storageReference = FirebaseStorage.getInstance().getReference("MAJOR PROJECT");
-
+        progressDialog =new ProgressDialog(MainActivity.this);
         Log.i("LOG_TAG",Integer.toString(imageCountFirebase));
         uploadButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -98,6 +99,9 @@ public class MainActivity extends AppCompatActivity {
                     ImageUriList.add(ImageUri);
                     ImageArray.add(byteArray);
                 }
+                progressDialog.setMessage("Loading Please Wait....");
+                progressDialog.setCancelable(false);
+                progressDialog.show();
                 uploadImageToFirebase(0,count);
             }
         }
@@ -106,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
     void uploadImageToFirebase(int i,int count){
         if(i==count)
         {
+            progressDialog.dismiss();
             Toast.makeText(MainActivity.this,"Image Uploaded",Toast.LENGTH_SHORT).show();
             databaseReference.child("ImageCount").setValue(imageCountFirebase);
         }
