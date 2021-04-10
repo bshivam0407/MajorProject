@@ -36,14 +36,16 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    Button uploadButton;
+    Button uploadButton,findSimilar;
     private DatabaseReference databaseReference;
     private  StorageReference storageReference;
-    private static  final  int PICK_IMAGE=1;
+    private static  final  int PICK_MULTIPLE_IMAGE=1;
+    private static  final  int PICK_TEST_IMAGE=2;
     int imageCountFirebase=0;
     ArrayList<Uri> ImageUriList = new ArrayList<>();
     ArrayList<byte[]> ImageArray= new ArrayList<>();
     ProgressDialog progressDialog;
+    Uri testImageUri;
 
 
     @Override
@@ -51,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         uploadButton= (Button) findViewById(R.id.upload);
-
+        findSimilar = (Button) findViewById(R.id.findSimilar);
         databaseReference =FirebaseDatabase.getInstance().getReference("MAJOR PROJECT");
         storageReference = FirebaseStorage.getInstance().getReference("MAJOR PROJECT");
         progressDialog =new ProgressDialog(MainActivity.this);
@@ -59,26 +61,33 @@ public class MainActivity extends AppCompatActivity {
         uploadButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                getImageCount();
-
-
+                imagesToServer();
+            }
+        });
+        findSimilar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                findSimilarImage();
             }
         });
 
     }
-    void uploadImage()
+
+    void findSimilarImage()
     {
+        Intent gallery = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
+        startActivityForResult(gallery, PICK_TEST_IMAGE);
+    }
+    void uploadImage() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("image/*");
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        startActivityForResult(intent, PICK_IMAGE);
-    }
-
+        startActivityForResult(intent, PICK_MULTIPLE_IMAGE);
+    } // store Images
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode==PICK_IMAGE && resultCode==RESULT_OK)
-        {
+        if(requestCode==PICK_MULTIPLE_IMAGE && resultCode==RESULT_OK) {
             if(data.getClipData()!=null)
             {
                 int count = data.getClipData().getItemCount();
@@ -104,9 +113,39 @@ public class MainActivity extends AppCompatActivity {
                 progressDialog.show();
                 uploadImageToFirebase(0,count);
             }
+        } // store Images
+        else if (requestCode == PICK_TEST_IMAGE && resultCode == RESULT_OK)
+        {
+            progressDialog.setMessage("Loading Please Wait....");
+            progressDialog.setCancelable(false);
+            progressDialog.show();
+            testImageUri = data.getData();
+            final StorageReference testImage = FirebaseStorage.getInstance().getReference("Test Image").child("testImg");
+            testImage.putFile(testImageUri).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                @Override
+                public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                    testImage.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                        @Override
+                        public void onSuccess(Uri uri) {
+                            String url =uri.toString();
+                            databaseReference.child("testImage").child("id").setValue(url).addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    Intent myIntent = new Intent(MainActivity.this, displayAds.class);
+                                    myIntent.putExtra("testImage", url); //Optional parameters
+                                    progressDialog.dismiss();
+                                    MainActivity.this.startActivity(myIntent);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+            //TODO
         }
 
-    }
+
+    } // Store Images
     void uploadImageToFirebase(int i,int count){
         if(i==count)
         {
@@ -137,8 +176,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
-    }
-    void  getImageCount(){
+    } //store Images
+    void  imagesToServer(){
         databaseReference.child("ImageCount").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
             @Override
             public void onComplete(@NonNull Task<DataSnapshot> task) {
@@ -157,7 +196,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-    }
+    }  // store Images
 
 
 }
