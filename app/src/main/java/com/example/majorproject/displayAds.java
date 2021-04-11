@@ -136,7 +136,7 @@ public class displayAds extends AppCompatActivity {
                 .into(imageView1);
         Picasso
                 .get()
-                .load(img1)
+                .load(img2)
                 .into(imageView2);
 
 
